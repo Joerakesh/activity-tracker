@@ -16,6 +16,8 @@ type TrackerStats = {
   tracking: boolean
   today: DayStats
   lastSevenDays: DayStats[]
+  lastThirtyDays: DayStats[]
+  dailyApplications: Record<string, AppUsage[]>
   applications: AppUsage[]
   launchAtLogin: boolean
   alwaysOnTop: boolean

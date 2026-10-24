@@ -115,20 +115,30 @@ if (!gotLock) {
       idleSeconds: 0
     }
 
-    const lastSevenDays = Array.from({ length: 7 }, (_, index) => {
+    const makeDayKey = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+
+    const lastThirtyDays = Array.from({ length: 30 }, (_, index) => {
       const d = new Date()
-      d.setDate(d.getDate() - (6 - index))
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+      d.setDate(d.getDate() - (29 - index))
+      const key = makeDayKey(d)
       return data.days[key] ?? { date: key, activeSeconds: 0, idleSeconds: 0 }
     })
-
-    const applications = Object.values(data.appUsage[date] ?? {})
-      .sort((a, b) => b.seconds - a.seconds)
+    const lastSevenDays = lastThirtyDays.slice(-7)
+    const dailyApplications = Object.fromEntries(
+      lastThirtyDays.map((day) => [
+        day.date,
+        Object.values(data.appUsage[day.date] ?? {}).sort((a, b) => b.seconds - a.seconds)
+      ])
+    )
+    const applications = dailyApplications[date] ?? []
 
     return {
       tracking,
       today: todayStats,
       lastSevenDays,
+      lastThirtyDays,
+      dailyApplications,
       applications,
       launchAtLogin,
       alwaysOnTop
