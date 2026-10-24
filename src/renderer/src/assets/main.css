@@ -335,3 +335,50 @@ p { margin: 0; }
   .content { padding: 18px; }
   .topbar { align-items: flex-start; flex-direction: column; }
 }
+
+/* Slim, auto-hiding dashboard scrollbar */
+html.dashboard-document {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+body.dashboard-document {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+/* Chromium / Electron */
+body.dashboard-document::-webkit-scrollbar {
+  width: 4px;
+}
+
+body.dashboard-document::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+body.dashboard-document::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 999px;
+  transition: background-color 250ms ease;
+}
+
+/* Visible only while scrolling */
+html.dashboard-document.is-scrolling,
+body.dashboard-document.is-scrolling {
+  scrollbar-color: #7964e8 transparent;
+}
+
+body.dashboard-document.is-scrolling::-webkit-scrollbar-thumb {
+  background: #7964e8;
+}
+
+body.dashboard-document.is-scrolling::-webkit-scrollbar-thumb:hover {
+  background: #b4a5ff;
+}
+
+/* Respect reduced-motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  body.dashboard-document::-webkit-scrollbar-thumb {
+    transition: none;
+  }
+}

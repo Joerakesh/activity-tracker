@@ -301,7 +301,19 @@ if (!gotLock) {
     if (widget.isVisible()) widget.hide()
     else widget.show()
   }
+function registerGlobalShortcuts(): void {
+  const shortcut = 'CommandOrControl+Shift+Space'
 
+  const registered = globalShortcut.register(shortcut, () => {
+    toggleWidget()
+  })
+
+  if (!registered) {
+    console.error(`Failed to register global shortcut: ${shortcut}`)
+  } else {
+    console.log(`Global shortcut registered: ${shortcut}`)
+  }
+}
   function updateTrayMenu(): void {
     if (!tray || tray.isDestroyed()) return
 
@@ -404,7 +416,8 @@ if (!gotLock) {
       args: ['--hidden']
     })
 
-    createTray()
+   createTray()
+registerGlobalShortcuts()
 
     const startHidden = process.argv.includes('--hidden')
     if (startHidden) createWidget()
@@ -423,11 +436,13 @@ if (!gotLock) {
     app.on('activate', () => createDashboard(true))
   })
 
-  app.on('before-quit', () => {
-    quitting = true
-    if (tickTimer) clearInterval(tickTimer)
-    tray?.destroy()
-  })
+app.on('before-quit', () => {
+  quitting = true
+  globalShortcut.unregisterAll()
+
+  if (tickTimer) clearInterval(tickTimer)
+  tray?.destroy()
+})
 
  
 }
