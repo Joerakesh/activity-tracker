@@ -20,7 +20,6 @@ type TrackerStats = {
   dailyApplications: Record<string, AppUsage[]>
   applications: AppUsage[]
   launchAtLogin: boolean
-  alwaysOnTop: boolean
 }
 
 declare global {
@@ -29,10 +28,7 @@ declare global {
       getStats: () => Promise<TrackerStats>
       setEnabled: (enabled: boolean) => Promise<TrackerStats>
       showDashboard: () => Promise<void>
-      toggleWidget: () => Promise<void>
-      hideWidget: () => Promise<void>
       quit: () => Promise<void>
-      setAlwaysOnTop: (enabled: boolean) => Promise<boolean>
       setLaunchAtLogin: (enabled: boolean) => Promise<boolean>
       onUpdated: (callback: () => void) => () => void
     }
