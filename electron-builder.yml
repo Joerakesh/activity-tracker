@@ -13,6 +13,7 @@ asarUnpack:
   - resources/**
 win:
   executableName: activity-tracker
+  icon: resources/icon.ico
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}
@@ -41,3 +42,7 @@ npmRebuild: false
 publish:
   provider: generic
   url: https://example.com/auto-updates
+extraResources:
+  - from: resources/icon.ico
+    to: icon.ico
+

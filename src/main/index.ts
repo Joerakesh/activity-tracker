@@ -227,21 +227,21 @@ if (!gotLock) {
       return
     }
 
-    dashboard = new BrowserWindow({
-      width: 1100,
-      height: 760,
-      minWidth: 760,
-      minHeight: 560,
-      show,
-      backgroundColor: '#101116',
-      webPreferences: {
-        preload: join(__dirname, '../preload/index.js'),
-        contextIsolation: true,
-        nodeIntegration: false,
-        sandbox: true
-      }
-    })
-
+  dashboard = new BrowserWindow({
+  width: 1100,
+  height: 760,
+  minWidth: 760,
+  minHeight: 560,
+  show,
+  icon: join(app.getAppPath(), 'resources', 'icon.ico'),
+  backgroundColor: '#101116',
+  webPreferences: {
+    preload: join(__dirname, '../preload/index.js'),
+    contextIsolation: true,
+    nodeIntegration: false,
+    sandbox: true
+  }
+})
     loadWindow(dashboard, false)
     dashboard.on('closed', () => { dashboard = null })
   }
@@ -266,6 +266,7 @@ if (!gotLock) {
       maxWidth: width,
       minHeight: height,
       maxHeight: height,
+      icon: join(app.getAppPath(), 'resources', 'icon.ico'),
       frame: false,
       transparent: false,
       resizable: false,
