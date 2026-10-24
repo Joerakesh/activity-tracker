@@ -1,0 +1,140 @@
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: transparent;
+}
+
+body {
+  font-family: "Segoe UI", Inter, sans-serif;
+  color: #f4f3fa;
+}
+
+button {
+  font: inherit;
+}
+
+.floating-widget {
+  height: 62px;
+  width: 330px;
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  background: #171820;
+  border: 1px solid #343541;
+  border-radius: 13px;
+  box-shadow: 0 8px 26px #0006;
+  user-select: none;
+}
+
+.widget-drag {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+  height: 100%;
+  cursor: grab;
+  -webkit-app-region: drag;
+}
+
+.widget-mark {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: #8774ff;
+  font-weight: 800;
+}
+
+.widget-labels {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.widget-labels strong {
+  font-size: 12px;
+}
+
+.widget-labels span {
+  color: #a9a5bf;
+  font-size: 8px;
+  letter-spacing: 0.7px;
+}
+
+.widget-time {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  align-items: flex-end;
+  white-space: nowrap;
+}
+
+.widget-time strong {
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.widget-time span {
+  color: #9293a5;
+  font-size: 9px;
+}
+
+.widget-toggle,
+.widget-action {
+  border: 0;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+}
+
+.widget-toggle {
+  width: 31px;
+  height: 34px;
+  background: #a696ff;
+  color: #181427;
+  font-weight: 800;
+}
+
+.widget-toggle.is-paused {
+  background: #373147;
+  color: #e2d9ff;
+}
+
+.widget-action {
+  width: 23px;
+  height: 30px;
+  background: transparent;
+  color: #a6a6b7;
+  font-size: 15px;
+}
+
+.widget-toggle:hover {
+  filter: brightness(1.12);
+}
+
+.widget-action:hover {
+  background: #2c2d38;
+  color: white;
+}
+
+.close-widget:hover {
+  background: #572d39;
+  color: #ffb9c6;
+}
