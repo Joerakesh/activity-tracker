@@ -7,7 +7,6 @@ import {
   nativeImage,
   powerMonitor,
   globalShortcut,
-  screen,
   Tray
 } from 'electron'
 import { join } from 'node:path'
@@ -32,7 +31,6 @@ type TrackerData = {
 type Preferences = {
   tracking: boolean
   launchAtLogin: boolean
-  alwaysOnTop: boolean
 }
 
 type ActiveWindowInfo = {
@@ -45,14 +43,12 @@ if (!gotLock) {
   app.quit()
 } else {
   let dashboard: BrowserWindow | null = null
-  let widget: BrowserWindow | null = null
   let tray: Tray | null = null
   let tickTimer: ReturnType<typeof setInterval> | undefined
   let activeWindow: (() => Promise<ActiveWindowInfo | undefined>) | undefined
   let sampling = false
   let tracking = false
   let launchAtLogin = true
-  let alwaysOnTop = true
   let previousTick = Date.now()
   let quitting = false
 
@@ -73,10 +69,9 @@ if (!gotLock) {
       return {
         tracking: value.tracking === true,
         launchAtLogin: value.launchAtLogin !== false,
-        alwaysOnTop: value.alwaysOnTop !== false
       }
     } catch {
-      return { tracking: true, launchAtLogin: true, alwaysOnTop: true }
+      return { tracking: true, launchAtLogin: true }
     }
   }
 
@@ -84,7 +79,7 @@ if (!gotLock) {
     await mkdir(app.getPath('userData'), { recursive: true })
     await writeFile(
       preferencesPath(),
-      JSON.stringify({ tracking, launchAtLogin, alwaysOnTop }, null, 2),
+      JSON.stringify({ tracking, launchAtLogin }, null, 2),
       'utf8'
     )
   }
@@ -141,12 +136,11 @@ if (!gotLock) {
       dailyApplications,
       applications,
       launchAtLogin,
-      alwaysOnTop
     }
   }
 
   function notifyWindows(): void {
-    for (const win of [dashboard, widget]) {
+    for (const win of [dashboard]) {
       if (win && !win.isDestroyed()) {
         win.webContents.send('tracker:updated')
       }
@@ -206,15 +200,11 @@ if (!gotLock) {
     }
   }
 
-  function loadWindow(win: BrowserWindow, isWidget: boolean): void {
+  function loadWindow(win: BrowserWindow): void {
     if (process.env['ELECTRON_RENDERER_URL']) {
-      const url = new URL(process.env['ELECTRON_RENDERER_URL'])
-      if (isWidget) url.searchParams.set('widget', '1')
-      void win.loadURL(url.toString())
+      void win.loadURL(process.env['ELECTRON_RENDERER_URL'])
     } else {
-      void win.loadFile(join(__dirname, '../renderer/index.html'), {
-        query: isWidget ? { widget: '1' } : {}
-      })
+      void win.loadFile(join(__dirname, '../renderer/index.html'))
     }
   }
 
@@ -242,64 +232,8 @@ if (!gotLock) {
     sandbox: true
   }
 })
-    loadWindow(dashboard, false)
+    loadWindow(dashboard)
     dashboard.on('closed', () => { dashboard = null })
-  }
-
-  function createWidget(showWhenReady = false): void {
-    if (widget && !widget.isDestroyed()) {
-      if (showWhenReady) {
-        widget.show()
-        widget.focus()
-        widget.setAlwaysOnTop(alwaysOnTop)
-      }
-      return
-    }
-
-    const area = screen.getPrimaryDisplay().workArea
-    const width = 252
-    const height = 48
-
-    widget = new BrowserWindow({
-      width,
-      height,
-      x: area.x + area.width - width - 24,
-      y: area.y + area.height - height - 24,
-      minWidth: width,
-      maxWidth: width,
-      minHeight: height,
-      maxHeight: height,
-      icon: join(app.getAppPath(), 'resources', 'icon.ico'),
-      frame: false,
-      transparent: false,
-      resizable: false,
-      movable: true,
-      alwaysOnTop,
-      skipTaskbar: true,
-      show: false,
-      backgroundColor: '#171820',
-      title: 'Activity Tracker',
-      webPreferences: {
-        preload: join(__dirname, '../preload/index.js'),
-        contextIsolation: true,
-        nodeIntegration: false,
-        sandbox: true
-      }
-    })
-
-    loadWindow(widget, true)
-
-    widget.on('close', (event) => {
-      if (!quitting) {
-        event.preventDefault()
-        widget?.hide()
-      }
-    })
-
-    widget.on('closed', () => { widget = null })
-    widget.once('ready-to-show', () => {
-      if (showWhenReady) widget?.show()
-    })
   }
 
   function setTracking(enabled: boolean): void {
@@ -309,30 +243,25 @@ if (!gotLock) {
     notifyWindows()
   }
 
-  function toggleWidget(): void {
-    if (!widget || widget.isDestroyed()) {
-      createWidget(true)
+  function toggleDashboard(): void {
+    if (!dashboard || dashboard.isDestroyed()) {
+      createDashboard(true)
       return
     }
-    if (widget.isVisible()) widget.hide()
+    if (dashboard.isVisible()) dashboard.hide()
     else {
-      widget.show()
-      widget.focus()
+      dashboard.show()
+      dashboard.focus()
     }
   }
-function registerGlobalShortcuts(): void {
-  const shortcut = 'CommandOrControl+Shift+Space'
 
-  const registered = globalShortcut.register(shortcut, () => {
-    toggleWidget()
-  })
-
-  if (!registered) {
-    console.error(`Failed to register global shortcut: ${shortcut}`)
-  } else {
-    console.log(`Global shortcut registered: ${shortcut}`)
+  function registerGlobalShortcuts(): void {
+    const shortcut = 'CommandOrControl+Shift+Space'
+    const registered = globalShortcut.register(shortcut, toggleDashboard)
+    if (!registered) console.error(`Failed to register global shortcut: ${shortcut}`)
+    else console.log(`Global shortcut registered: ${shortcut}`)
   }
-}
+
   function updateTrayMenu(): void {
     if (!tray || tray.isDestroyed()) return
 
@@ -340,19 +269,8 @@ function registerGlobalShortcuts(): void {
       { label: tracking ? 'Pause tracking' : 'Start tracking', click: () => setTracking(!tracking) },
       { type: 'separator' },
       { label: 'Open dashboard', click: () => createDashboard(true) },
-      { label: widget?.isVisible() ? 'Hide floating bar' : 'Show floating bar', click: toggleWidget },
+      { label: dashboard?.isVisible() ? 'Hide dashboard' : 'Show dashboard', click: toggleDashboard },
       { type: 'separator' },
-      {
-        label: 'Always on top',
-        type: 'checkbox',
-        checked: alwaysOnTop,
-        click: (item) => {
-          alwaysOnTop = item.checked
-          widget?.setAlwaysOnTop(alwaysOnTop)
-          void savePreferences()
-          updateTrayMenu()
-        }
-      },
       {
         label: 'Launch with Windows',
         type: 'checkbox',
@@ -384,7 +302,7 @@ function registerGlobalShortcuts(): void {
     tray = new Tray(nativeImage.createFromDataURL(
       `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
     ))
-    tray.on('click', toggleWidget)
+    tray.on('click', toggleDashboard)
     updateTrayMenu()
   }
 
@@ -397,21 +315,11 @@ function registerGlobalShortcuts(): void {
   })
 
   ipcMain.handle('tracker:show-dashboard', () => createDashboard(true))
-  ipcMain.handle('tracker:toggle-widget', () => toggleWidget())
-  ipcMain.handle('tracker:hide-widget', () => widget?.hide())
   ipcMain.handle('tracker:quit', () => {
     quitting = true
     app.quit()
   })
 
-  ipcMain.handle('tracker:set-always-on-top', async (_event, enabled: unknown) => {
-    if (typeof enabled !== 'boolean') throw new Error('Invalid setting')
-    alwaysOnTop = enabled
-    widget?.setAlwaysOnTop(enabled)
-    await savePreferences()
-    updateTrayMenu()
-    return alwaysOnTop
-  })
 
   ipcMain.handle('tracker:set-launch-at-login', async (_event, enabled: unknown) => {
     if (typeof enabled !== 'boolean') throw new Error('Invalid setting')
@@ -428,7 +336,6 @@ function registerGlobalShortcuts(): void {
     const preferences = await readPreferences()
     tracking = preferences.tracking
     launchAtLogin = preferences.launchAtLogin
-    alwaysOnTop = preferences.alwaysOnTop
 
     app.setLoginItemSettings({
       openAtLogin: launchAtLogin,
@@ -439,11 +346,7 @@ function registerGlobalShortcuts(): void {
 registerGlobalShortcuts()
 
     const startHidden = process.argv.includes('--hidden')
-    if (startHidden) createWidget(false)
-    else {
-      createDashboard(true)
-      createWidget(false)
-    }
+    if (!startHidden) createDashboard(true)
 
     tickTimer = setInterval(() => {
       void recordTick().catch(console.error)
