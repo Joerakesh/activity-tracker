@@ -234,7 +234,8 @@ if (!gotLock) {
   minHeight: 560,
   show,
   icon: join(app.getAppPath(), 'resources', 'icon.ico'),
-  backgroundColor: '#101116',
+  backgroundColor: '#111827',
+  autoHideMenuBar: true,
   webPreferences: {
     preload: join(__dirname, '../preload/index.js'),
     contextIsolation: true,

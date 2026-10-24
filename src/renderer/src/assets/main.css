@@ -967,3 +967,35 @@ body.dashboard-document.is-scrolling::-webkit-scrollbar-thumb:hover {
   .comparison-grid { grid-template-columns: 1fr; }
   .analytics-bars { height: 170px; }
 }
+
+/* Dashboard background */
+html.dashboard-document,
+body.dashboard-document {
+  background-color: #111827;
+}
+
+body.dashboard-document {
+  background-image:
+    radial-gradient(
+      ellipse at 10% 0%,
+      rgba(94, 145, 241, 0.12),
+      transparent 45%
+    ),
+    radial-gradient(
+      ellipse at 100% 100%,
+      rgba(106, 102, 114, 0.1),
+      transparent 45%
+    );
+  background-attachment: fixed;
+  color: #f1f5f9;
+}
+
+/* Dashboard statistic and chart cards */
+.stat-card,
+.chart-card,
+.analytics-chart-card {
+  background: rgba(30, 41, 59, 0.78);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
