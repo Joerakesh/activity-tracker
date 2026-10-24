@@ -4,12 +4,12 @@ An Electron application with React and TypeScript
 
 ## Features
 
-- Local-first desktop activity tracking with a compact floating widget (hidden on startup; toggle with `Ctrl+Shift+Space`)
+- Local-first desktop activity tracking with a dashboard that can be toggled using `Ctrl+Shift+Space`
 - Daily active/idle summaries and per-application usage totals
 - Analytics dashboard with 7-day and 30-day views
 - Daily active-time trend, app usage ranking, average active time, and period comparison
 - Configurable analytics cards, with layout preferences stored locally
-- Existing keyboard shortcut, system tray, startup, and always-on-top settings
+- Global keyboard shortcut, system tray controls, and launch-at-login setting
 
 ## Analytics notes
 
