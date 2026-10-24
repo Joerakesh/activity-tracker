@@ -2,7 +2,11 @@
 import React, { useEffect } from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
+import Widget from './Widget'
 import './assets/main.css'
+
+const isWidget =
+  new URLSearchParams(window.location.search).get('widget') === '1'
 
 function Root() {
   useEffect(() => {
@@ -11,6 +15,15 @@ function Root() {
 
     html.classList.remove('is-scrolling')
     body.classList.remove('is-scrolling')
+
+    if (isWidget) {
+      html.classList.add('widget-document')
+      body.classList.add('widget-document')
+      html.classList.remove('dashboard-document')
+      body.classList.remove('dashboard-document')
+
+      return
+    }
 
     html.classList.add('dashboard-document')
     body.classList.add('dashboard-document')
@@ -39,7 +52,7 @@ function Root() {
     }
   }, [])
 
-  return <App />
+  return isWidget ? <Widget /> : <App />
 }
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
