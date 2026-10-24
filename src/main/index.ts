@@ -246,16 +246,19 @@ if (!gotLock) {
     dashboard.on('closed', () => { dashboard = null })
   }
 
-  function createWidget(): void {
+  function createWidget(showWhenReady = false): void {
     if (widget && !widget.isDestroyed()) {
-      widget.show()
-      widget.setAlwaysOnTop(alwaysOnTop)
+      if (showWhenReady) {
+        widget.show()
+        widget.focus()
+        widget.setAlwaysOnTop(alwaysOnTop)
+      }
       return
     }
 
     const area = screen.getPrimaryDisplay().workArea
-    const width = 330
-    const height = 62
+    const width = 252
+    const height = 48
 
     widget = new BrowserWindow({
       width,
@@ -294,7 +297,9 @@ if (!gotLock) {
     })
 
     widget.on('closed', () => { widget = null })
-    widget.once('ready-to-show', () => widget?.show())
+    widget.once('ready-to-show', () => {
+      if (showWhenReady) widget?.show()
+    })
   }
 
   function setTracking(enabled: boolean): void {
@@ -306,11 +311,14 @@ if (!gotLock) {
 
   function toggleWidget(): void {
     if (!widget || widget.isDestroyed()) {
-      createWidget()
+      createWidget(true)
       return
     }
     if (widget.isVisible()) widget.hide()
-    else widget.show()
+    else {
+      widget.show()
+      widget.focus()
+    }
   }
 function registerGlobalShortcuts(): void {
   const shortcut = 'CommandOrControl+Shift+Space'
@@ -431,10 +439,10 @@ function registerGlobalShortcuts(): void {
 registerGlobalShortcuts()
 
     const startHidden = process.argv.includes('--hidden')
-    if (startHidden) createWidget()
+    if (startHidden) createWidget(false)
     else {
       createDashboard(true)
-      createWidget()
+      createWidget(false)
     }
 
     tickTimer = setInterval(() => {
