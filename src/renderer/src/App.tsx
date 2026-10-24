@@ -20,6 +20,7 @@ type TrackerStats = {
   lastThirtyDays: DayStats[]
   dailyApplications: Record<string, AppUsage[]>
   launchAtLogin: boolean
+  alwaysOnTop: boolean
 }
 
 type Page = 'overview' | 'activity' | 'analytics' | 'settings'
@@ -109,11 +110,15 @@ function App() {
     }
   }
 
-  async function updatePreference(key: 'launchAtLogin', enabled: boolean) {
+  async function updatePreference(key: 'launchAtLogin' | 'alwaysOnTop', enabled: boolean) {
     if (!stats || busy) return
     setBusy(true)
     try {
-      await window.trackerAPI.setLaunchAtLogin(enabled)
+      if (key === 'launchAtLogin') {
+        await window.trackerAPI.setLaunchAtLogin(enabled)
+      } else {
+        await window.trackerAPI.setAlwaysOnTop(enabled)
+      }
       setStats((current) => current ? { ...current, [key]: enabled } : current)
       setError('')
     } catch {
@@ -303,7 +308,8 @@ function App() {
           <section className="settings-stack">
             <div className="settings-intro"><div className="settings-icon">⚙</div><div><h2>Preferences</h2><p className="muted">Small controls to make the tracker fit your workflow.</p></div></div>
             <article className="setting-row"><div className="setting-copy"><strong>Launch with Windows</strong><p>Start the tracker when you sign in to your PC.</p></div><button role="switch" aria-checked={stats.launchAtLogin} className={`switch ${stats.launchAtLogin ? 'on' : ''}`} disabled={busy} onClick={() => void updatePreference('launchAtLogin', !stats.launchAtLogin)}><span /></button></article>
-            <article className="setting-row"><div className="setting-copy"><strong>Global shortcut</strong><p>Show or hide the dashboard from any app.</p></div><kbd>Ctrl</kbd><span className="key-plus">+</span><kbd>Shift</kbd><span className="key-plus">+</span><kbd>Space</kbd></article>
+            <article className="setting-row"><div className="setting-copy"><strong>Keep floating bar on top</strong><p>Keep the compact tracker visible above other windows.</p></div><button role="switch" aria-checked={stats.alwaysOnTop} className={`switch ${stats.alwaysOnTop ? 'on' : ''}`} disabled={busy} onClick={() => void updatePreference('alwaysOnTop', !stats.alwaysOnTop)}><span /></button></article>
+            <article className="setting-row"><div className="setting-copy"><strong>Global shortcut</strong><p>Show or hide the floating tracker from any app.</p></div><kbd>Ctrl</kbd><span className="key-plus">+</span><kbd>Shift</kbd><span className="key-plus">+</span><kbd>Space</kbd></article>
             <div className="privacy-panel"><span>◈</span><div><strong>Local-first by design</strong><p>Your activity data and preferences are stored on this PC. This screen doesn't send them anywhere.</p></div></div>
           </section>
         )}
