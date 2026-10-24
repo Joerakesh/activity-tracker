@@ -17,11 +17,13 @@ type TrackerStats = {
   today: DayStats
   lastSevenDays: DayStats[]
   applications: AppUsage[]
+  lastThirtyDays: DayStats[]
+  dailyApplications: Record<string, AppUsage[]>
   launchAtLogin: boolean
   alwaysOnTop: boolean
 }
 
-type Page = 'overview' | 'activity' | 'settings'
+type Page = 'overview' | 'activity' | 'analytics' | 'settings'
 
 function formatDuration(seconds: number): string {
   const safeSeconds = Math.max(0, seconds)
@@ -41,6 +43,7 @@ function formatDay(date: string): string {
 const navigation: { id: Page; icon: string; label: string; group: string }[] = [
   { id: 'overview', icon: '⌂', label: 'Overview', group: 'WORKSPACE' },
   { id: 'activity', icon: '◷', label: 'Screen activity', group: 'WORKSPACE' },
+  { id: 'analytics', icon: '⌁', label: 'Analytics', group: 'WORKSPACE' },
   { id: 'settings', icon: '⚙', label: 'Settings', group: 'PREFERENCES' }
 ]
 
@@ -49,6 +52,12 @@ function App() {
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [analyticsRange, setAnalyticsRange] = useState<'7' | '30'>('7')
+  const [showCustomize, setShowCustomize] = useState(false)
+  const [visibleCards, setVisibleCards] = useState<Record<string, boolean>>(() => {
+    try { return JSON.parse(localStorage.getItem('activity-analytics-cards') || '{"trend":true,"apps":true,"comparison":true}') }
+    catch { return { trend: true, apps: true, comparison: true } }
+  })
   const [page, setPage] = useState<Page>('overview')
   const [collapsed, setCollapsed] = useState(() => {
     try {
@@ -126,6 +135,26 @@ function App() {
   const applications = stats.applications ?? []
   const totalAppSeconds = applications.reduce((sum, item) => sum + item.seconds, 0)
   const activePage = navigation.find((item) => item.id === page)
+  const analyticsDays = (analyticsRange === '7' ? (stats.lastSevenDays ?? []) : (stats.lastThirtyDays ?? [])).slice()
+  const previousDays = analyticsDays.slice(0, Math.floor(analyticsDays.length / 2))
+  const currentDays = analyticsDays.slice(Math.floor(analyticsDays.length / 2))
+  const sumActive = (days: DayStats[]) => days.reduce((sum, day) => sum + day.activeSeconds, 0)
+  const currentPeriodSeconds = sumActive(currentDays)
+  const previousPeriodSeconds = sumActive(previousDays)
+  const periodChange = previousPeriodSeconds > 0 ? ((currentPeriodSeconds - previousPeriodSeconds) / previousPeriodSeconds) * 100 : null
+  const appTotals = Object.entries(stats.dailyApplications ?? {}).reduce<Record<string, number>>((totals, [date, items]) => {
+    if (analyticsDays.some((day) => day.date === date)) items.forEach((item) => { totals[item.name] = (totals[item.name] ?? 0) + item.seconds })
+    return totals
+  }, {})
+  const rankedApps = Object.entries(appTotals).map(([name, seconds]) => ({ name, seconds })).sort((left, right) => right.seconds - left.seconds)
+  const totalPeriodAppSeconds = rankedApps.reduce((sum, item) => sum + item.seconds, 0)
+  function updateVisibleCard(key: string, visible: boolean) {
+    setVisibleCards((current) => {
+      const next = { ...current, [key]: visible }
+      try { localStorage.setItem('activity-analytics-cards', JSON.stringify(next)) } catch { /* optional preference */ }
+      return next
+    })
+  }
 
   return (
     <main className={`app-shell ${collapsed ? 'sidebar-collapsed' : ''}`}>
@@ -167,14 +196,16 @@ function App() {
       <section className="content">
         <header className="topbar">
           <div>
-            <p className="eyebrow">{page === 'settings' ? 'MAKE IT YOURS' : page === 'activity' ? 'YOUR TIME, IN CONTEXT' : 'YOUR PERSONAL WORKSPACE'}</p>
+            <p className="eyebrow">{page === 'settings' ? 'MAKE IT YOURS' : page === 'activity' ? 'YOUR TIME, IN CONTEXT' : page === 'analytics' ? 'PATTERNS, NOT GUESSES' : 'YOUR PERSONAL WORKSPACE'}</p>
             <h1>{activePage?.label ?? 'Overview'}</h1>
             <p className="muted">
               {page === 'settings'
                 ? 'Keep the tracker working the way you prefer.'
                 : page === 'activity'
                   ? 'A focused view of your recorded computer activity.'
-                  : 'A calm, clear picture of how you spend your computer time.'}
+                  : page === 'analytics'
+                    ? 'Explore application usage, time trends, and period comparisons.'
+                    : 'A calm, clear picture of how you spend your computer time.'}
             </p>
           </div>
           <div className="topbar-actions">
@@ -245,6 +276,31 @@ function App() {
                 return <div className="application-row" key={item.name}><div className="application-info"><span className="application-name"><span className="rank-number">{String(index + 1).padStart(2, '0')}</span>{item.name}</span><strong>{formatDuration(item.seconds)}</strong></div><div className="application-bar-track"><div className="application-bar" style={{ width: `${Math.min(100, percentage)}%` }} /></div></div>
               })}</div> : <p className="empty-apps">No application usage recorded yet.</p>}
             </section>
+          </>
+        )}
+
+        {page === 'analytics' && (
+          <>
+            <div className="analytics-toolbar">
+              <div className="range-control" role="group" aria-label="Analytics date range">
+                <button className={analyticsRange === '7' ? 'selected' : ''} onClick={() => setAnalyticsRange('7')}>7 days</button>
+                <button className={analyticsRange === '30' ? 'selected' : ''} onClick={() => setAnalyticsRange('30')}>30 days</button>
+              </div>
+              <button className="customize-button" onClick={() => setShowCustomize((value) => !value)} aria-expanded={showCustomize}>⚙ Customize</button>
+            </div>
+            {showCustomize && <section className="customize-panel"><strong>Dashboard cards</strong><p className="muted">Choose what appears on this page. Your layout is saved on this PC.</p><div className="customize-options">{[{key:'trend',label:'Usage trend'},{key:'apps',label:'Application breakdown'},{key:'comparison',label:'Period comparison'}].map((item) => <label key={item.key}><input type="checkbox" checked={visibleCards[item.key] !== false} onChange={(event) => updateVisibleCard(item.key, event.target.checked)} />{item.label}</label>)}</div></section>}
+            <section className="stats-grid analytics-metrics">
+              <article className="stat-card"><span className="stat-icon purple">◷</span><p>Active time</p><strong>{formatDuration(sumActive(analyticsDays))}</strong><span className="stat-note">Across {analyticsDays.length} calendar days</span></article>
+              <article className="stat-card"><span className="stat-icon blue">▤</span><p>Applications used</p><strong>{rankedApps.length}</strong><span className="stat-note">Distinct apps with recorded usage</span></article>
+              <article className="stat-card"><span className="stat-icon green">↗</span><p>Daily average</p><strong>{formatDuration(analyticsDays.length ? Math.round(sumActive(analyticsDays) / analyticsDays.length) : 0)}</strong><span className="stat-note">Includes days with no recorded activity</span></article>
+            </section>
+            {visibleCards.trend !== false && <section className="chart-card analytics-chart-card">
+              <div className="chart-header"><div><h2>Active time trend</h2><p className="muted">Daily active time. Missing records are displayed as zero, not estimated.</p></div><span className="app-count">{analyticsRange} days</span></div>
+              {analyticsDays.length ? <div className="analytics-bars">{analyticsDays.map((day) => { const max = Math.max(1, ...analyticsDays.map((item) => item.activeSeconds)); return <div className="analytics-bar-column" key={day.date} title={day.date + ': ' + formatDuration(day.activeSeconds)}><span className="analytics-bar-value">{day.activeSeconds >= 3600 ? (day.activeSeconds / 3600).toFixed(1) + 'h' : ''}</span><div className="analytics-bar-track"><div className="analytics-bar" style={{ height: (day.activeSeconds / max * 100) + '%' }} /></div><span className="analytics-bar-label">{formatDay(day.date).split(' ')[1] ?? formatDay(day.date)}</span></div>})}</div> : <p className="empty-apps">No daily summaries are available for this range.</p>}
+            </section>}
+            {visibleCards.comparison !== false && <section className="chart-card comparison-card"><div className="chart-header"><div><h2>Period comparison</h2><p className="muted">First half versus second half of the selected range.</p></div></div><div className="comparison-grid"><div><span>Earlier period</span><strong>{formatDuration(previousPeriodSeconds)}</strong></div><div><span>Later period</span><strong>{formatDuration(currentPeriodSeconds)}</strong></div><div><span>Change</span><strong className={periodChange === null ? '' : periodChange >= 0 ? 'change-up' : 'change-down'}>{periodChange === null ? '—' : (periodChange > 0 ? '+' : '') + periodChange.toFixed(1) + '%'}</strong></div></div>{periodChange === null && <p className="stat-note">A percentage change appears after the earlier period has recorded active time.</p>}</section>}
+            {visibleCards.apps !== false && <section className="chart-card"><div className="chart-header"><div><h2>Application breakdown</h2><p className="muted">Combined usage in the selected period, ranked by duration.</p></div><span className="app-count">{rankedApps.length} apps</span></div>{rankedApps.length ? <div className="application-list">{rankedApps.slice(0, 12).map((item, index) => <div className="application-row" key={item.name}><div className="application-info"><span className="application-name"><span className="rank-number">{String(index + 1).padStart(2, '0')}</span>{item.name}</span><strong>{formatDuration(item.seconds)}</strong></div><div className="application-bar-track"><div className="application-bar" style={{ width: (totalPeriodAppSeconds ? Math.min(100, item.seconds / totalPeriodAppSeconds * 100) : 0) + '%' }} /></div></div>)}</div> : <p className="empty-apps">No application usage recorded in this period yet.</p>}</section>}
+            <footer className="privacy-note"><span>🔒</span><div><strong>Analytics are calculated locally</strong><p>These charts use locally stored daily totals and app usage. They do not infer exact hourly sessions or app-switch counts.</p></div></footer>
           </>
         )}
 
